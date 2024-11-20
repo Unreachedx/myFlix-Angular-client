@@ -1,0 +1,12 @@
+<nav>
+    <a routerLink="/welcome">Welcome</a>
+    <a routerLink="/movies">Movies</a>
+    <a routerLink="/profile">Profile</a>
+    <button (click)="logout()">Logout</button>
+  </nav>
+  
+  <!-- Success message that will be shown after logout -->
+  <div *ngIf="logoutSuccessMessage" class="success-message">
+    {{ logoutSuccessMessage }}
+  </div>
+  

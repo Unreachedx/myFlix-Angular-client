@@ -9,6 +9,8 @@ import { FetchApiDataService } from '../fetch-api-data.service';
 // This import is used to display notifications back to the user
 import { MatSnackBar } from '@angular/material/snack-bar';
 
+import { Router } from '@angular/router';
+
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
@@ -21,10 +23,11 @@ export class LoginComponent implements OnInit {
   constructor(
     public fetchApiData: FetchApiDataService,
     public dialogRef: MatDialogRef<LoginComponent>,  // Dialog reference to close the dialog
-    public snackBar: MatSnackBar) { }
+    public snackBar: MatSnackBar,
+    private router: Router // Inject Router service here
+  ) { }
 
-  ngOnInit(): void {
-  }
+  ngOnInit(): void { }
 
   /**
    * Function to login user using FetchApiDataService
@@ -37,6 +40,9 @@ export class LoginComponent implements OnInit {
 
       // Close the dialog on success!
       this.dialogRef.close();
+
+      // Navigate to the movies page
+      this.router.navigate(['movies']); // Correctly placed here
 
       // Show a success notification to the user
       this.snackBar.open(`Login Successful, Hello ${result.user.Username}`, 'OK', {
