@@ -6,19 +6,22 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthGuard implements CanActivate {
-
+  
   constructor(private router: Router) {}
 
   canActivate(
-    next: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> | Promise<boolean> | boolean {
-    const token = localStorage.getItem('token');
-    if (token) {
-      return true; // User is logged in, allow access
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot): Observable<boolean> | Promise<boolean> | boolean {
+    
+    // Check if user is authenticated (based on your auth logic, like token)
+    const userToken = localStorage.getItem('token');
+    
+    if (userToken) {
+      // If the user is authenticated, allow access
+      return true;
     } else {
-      // Redirect to login page if the user is not logged in
-      this.router.navigate(['/login']);
+      // If not authenticated, redirect to the welcome page instead of login
+      this.router.navigate(['welcome']);
       return false;
     }
   }

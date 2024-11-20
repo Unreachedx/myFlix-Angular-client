@@ -19,9 +19,9 @@ export class NavbarComponent {
     // Show the logout success message
     this.logoutSuccessMessage = 'You have successfully logged out!';
 
-    // Redirect to login page after a short delay (to display the message)
+    // Redirect to the welcome page after a short delay (to display the message)
     setTimeout(() => {
-      this.router.navigate(['login']);  // Redirect to login page
+      this.router.navigate(['welcome']);  // Redirect to welcome page
       this.logoutSuccessMessage = null;  // Hide message after navigating
     }, 2000);  // 2-second delay
   }

@@ -1,15 +1,10 @@
-import { Component, OnInit, Input } from '@angular/core';
-
-// You'll use this import to close the dialog on success
-import { MatDialogRef } from '@angular/material/dialog';
-
-// This import brings in the API calls we created
-import { FetchApiDataService } from '../fetch-api-data.service';
-
-// This import is used to display notifications back to the user
-import { MatSnackBar } from '@angular/material/snack-bar';
-
+import { Component, OnInit, Input, Inject, Optional } from '@angular/core';
 import { Router } from '@angular/router';
+import { MatDialogRef } from '@angular/material/dialog';  // Import MatDialogRef
+import { MatSnackBar } from '@angular/material/snack-bar';
+import { FetchApiDataService } from '../fetch-api-data.service';
+import { isPlatformBrowser } from '@angular/common';
+import { PLATFORM_ID } from '@angular/core';  // Import PLATFORM_ID
 
 @Component({
   selector: 'app-login',
@@ -22,7 +17,8 @@ export class LoginComponent implements OnInit {
 
   constructor(
     public fetchApiData: FetchApiDataService,
-    public dialogRef: MatDialogRef<LoginComponent>,  // Dialog reference to close the dialog
+    @Inject(PLATFORM_ID) private platformId: Object,  // Inject PLATFORM_ID
+    @Optional() public dialogRef: MatDialogRef<LoginComponent>,  // Optional dialogRef
     public snackBar: MatSnackBar,
     private router: Router // Inject Router service here
   ) { }
@@ -38,8 +34,10 @@ export class LoginComponent implements OnInit {
       localStorage.setItem("user", JSON.stringify(result.user));
       localStorage.setItem("token", result.token);
 
-      // Close the dialog on success!
-      this.dialogRef.close();
+      // Only close the dialog in the browser
+      if (isPlatformBrowser(this.platformId)) {
+        this.dialogRef?.close();  // Safely close dialog only if dialogRef exists
+      }
 
       // Navigate to the movies page
       this.router.navigate(['movies']); // Correctly placed here
