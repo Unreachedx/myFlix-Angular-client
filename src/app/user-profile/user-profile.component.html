@@ -9,7 +9,7 @@
         [(ngModel)]="user.username"
         name="username"
         required
-        [readonly]="isViewMode"
+        [disabled]="isViewMode"
       />
     </div>
 
@@ -21,7 +21,7 @@
         [(ngModel)]="user.email"
         name="email"
         required
-        [readonly]="isViewMode"
+        [disabled]="isViewMode"
       />
     </div>
 
@@ -31,30 +31,34 @@
         id="bio"
         [(ngModel)]="user.bio"
         name="bio"
-        [readonly]="isViewMode"
+        [disabled]="isViewMode"
       ></textarea>
     </div>
 
-    <!-- Favorite Movies Section -->
+    <div class="button-group">
+      <button *ngIf="!isViewMode" type="submit">Save Changes</button>
+      <button type="button" (click)="toggleEdit()">
+        {{ isViewMode ? 'Edit Profile' : 'Cancel' }}
+      </button>
+    </div>
+  </form>
+
+  <!-- Favorites Section -->
+  <div class="favorites-container">
+    <h3>Your Favorite Movies</h3>
     <div *ngIf="favorites.length > 0; else noFavorites">
-      <h3>Your Favorite Movies</h3>
       <ul>
         <li *ngFor="let movie of favorites">
-          <h4>{{ movie.title }}</h4>  <!-- Display Movie Title -->
-          <p>{{ movie.description }}</p>  <!-- Display Movie Description -->
-          <button (click)="toggleFavorite(movie._id)">
-            <i [class]="isMovieFavorite(movie._id) ? 'fas fa-heart' : 'far fa-heart'"></i>
-          </button>
+          <h4>{{ movie.title }}</h4>
+          <button (click)="removeFavorite(movie._id, movie.title)">Remove from Favorites</button>
         </li>
       </ul>
     </div>
     <ng-template #noFavorites>
       <p>You have no favorite movies yet.</p>
     </ng-template>
+  </div>
 
-    <button *ngIf="!isViewMode" type="submit">Save Changes</button>
-    <button type="button" (click)="toggleEdit()">
-      {{ isViewMode ? 'Edit' : 'View' }} Profile
-    </button>
-  </form>
+  <!-- Example of Add to Favorites button -->
+  <button (click)="addFavorite('movieId', 'Movie Title')">Add to Favorites</button>
 </div>

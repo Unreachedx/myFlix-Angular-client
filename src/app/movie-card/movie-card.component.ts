@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { MatDialog } from '@angular/material/dialog';
 import { FetchApiDataService } from '../fetch-api-data.service';
+import { MatDialog } from '@angular/material/dialog';
 import { MovieDetailDialogComponent } from '../movie-detail-dialog/movie-detail-dialog.component';
 
 @Component({
@@ -10,7 +10,7 @@ import { MovieDetailDialogComponent } from '../movie-detail-dialog/movie-detail-
 })
 export class MovieCardComponent implements OnInit {
   movies: any[] = [];
-  userFavorites: string[] = []; // Store the user's favorite movies
+  userFavorites: string[] = []; // Store the user's favorite movie IDs
 
   constructor(
     private fetchApiData: FetchApiDataService,
@@ -19,7 +19,7 @@ export class MovieCardComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadMovies();
-    this.loadUserFavorites(); // Load user favorites from localStorage or API
+    this.loadUserFavorites(); // Load user favorites from localStorage
   }
 
   /**
@@ -43,14 +43,19 @@ export class MovieCardComponent implements OnInit {
   private loadUserFavorites(): void {
     const storedFavorites = localStorage.getItem('userFavorites');
     if (storedFavorites) {
-      // If there are favorites in localStorage, use them
+      // If favorites exist in localStorage, use them
       this.userFavorites = JSON.parse(storedFavorites);
       console.log('Loaded user favorites from localStorage:', this.userFavorites);
     } else {
-      // If no favorites in localStorage, fetch them from the API
+      // Fetch favorites from API if not in localStorage
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const username = currentUser.username;
+      if (!currentUser || !currentUser.Username) {
+        console.error('No user found in localStorage. Please log in.');
+        alert('You are not logged in. Please log in to view your favorites.');
+        return;
+      }
 
+      const username = currentUser.Username;
       if (username) {
         this.fetchApiData.getUserFavoriteMovies(username).subscribe(
           (data: string[]) => {
@@ -68,7 +73,7 @@ export class MovieCardComponent implements OnInit {
   }
 
   /**
-   * Check if a movie is in the user's favorites
+   * Check if a movie is in the user's favorites (based on movie ID)
    */
   isFavorite(movieId: string): boolean {
     return this.userFavorites.includes(movieId);
@@ -89,28 +94,24 @@ export class MovieCardComponent implements OnInit {
   }
 
   /**
-   * Add a movie to the user's favorites
+   * Add a movie to the user's favorites and update localStorage
    */
   addToFavorites(movie: any): void {
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const username = currentUser?.Username; // Ensure the correct case for 'Username'
+    const username = currentUser?.Username; // Corrected field
 
     if (!username) {
       console.error('No username found in local storage. Please log in.');
       alert('Please log in first to add a movie to favorites.');
-      return; // Prevent API call if no username
+      return;
     }
 
     this.fetchApiData.addFavoriteMovie(username, movie._id).subscribe(
       (response) => {
         console.log('Movie added to favorites:', response);
-        // Update the local list immediately
+        // Immediately update the local favorites list and localStorage
         this.userFavorites.push(movie._id);
-
-        // Store updated favorite list in localStorage
         localStorage.setItem('userFavorites', JSON.stringify(this.userFavorites));
-
-        // Optionally, you can also update the profile directly by triggering a refresh
       },
       (error) => {
         console.error('Error adding movie to favorites:', error);
@@ -119,46 +120,41 @@ export class MovieCardComponent implements OnInit {
   }
 
   /**
-   * Toggle the favorite status of a movie (add/remove)
+   * Remove a movie from the user's favorites and update localStorage
    */
-  toggleFavorite(movie: any): void {
+  removeFromFavorites(movie: any): void {
     const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const username = currentUser?.Username; // Ensure the correct case for 'Username'
+    const username = currentUser?.Username; // Corrected field
 
     if (!username) {
       console.error('No username found in local storage. Please log in.');
-      alert('Please log in first to toggle movie favorites.');
+      alert('Please log in first to remove a movie from favorites.');
       return;
     }
 
+    this.fetchApiData.removeFavoriteMovie(username, movie._id).subscribe(
+      (response) => {
+        console.log('Movie removed from favorites:', response);
+        // Update the local favorites list and localStorage
+        this.userFavorites = this.userFavorites.filter((id) => id !== movie._id);
+        localStorage.setItem('userFavorites', JSON.stringify(this.userFavorites));
+      },
+      (error) => {
+        console.error('Error removing movie from favorites:', error);
+      }
+    );
+  }
+
+  /**
+   * Toggle the favorite status of a movie (add/remove)
+   */
+  toggleFavorite(movie: any): void {
     if (this.isFavorite(movie._id)) {
-      // Remove from favorites
-      this.fetchApiData.removeFavoriteMovie(username, movie._id).subscribe(
-        (response) => {
-          console.log('Movie removed from favorites:', response);
-          this.userFavorites = this.userFavorites.filter((id) => id !== movie._id); // Remove from the local list
-
-          // Update localStorage
-          localStorage.setItem('userFavorites', JSON.stringify(this.userFavorites));
-        },
-        (error) => {
-          console.error('Error removing movie from favorites:', error);
-        }
-      );
+      // If the movie is already a favorite, remove it
+      this.removeFromFavorites(movie);
     } else {
-      // Add to favorites
-      this.fetchApiData.addFavoriteMovie(username, movie._id).subscribe(
-        (response) => {
-          console.log('Movie added to favorites:', response);
-          this.userFavorites.push(movie._id); // Add to the local list
-
-          // Update localStorage
-          localStorage.setItem('userFavorites', JSON.stringify(this.userFavorites));
-        },
-        (error) => {
-          console.error('Error adding movie to favorites:', error);
-        }
-      );
+      // If the movie is not a favorite, add it
+      this.addToFavorites(movie);
     }
   }
 }

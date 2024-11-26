@@ -1,128 +1,132 @@
 import { Component, OnInit } from '@angular/core';
 import { FetchApiDataService } from '../fetch-api-data.service';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
 
 @Component({
   selector: 'app-user-profile',
   templateUrl: './user-profile.component.html',
-  styleUrls: ['./user-profile.component.scss']
+  styleUrls: ['./user-profile.component.scss'],
 })
 export class UserProfileComponent implements OnInit {
   user = {
     username: '',
     email: '',
-    bio: ''
+    bio: '',
   };
+  favorites: any[] = []; // Store movie details (id, title)
   isViewMode = true;
-  favorites: any[] = [];
+  favoritesLoading = false; // Flag for loading state
 
-  constructor(private router: Router, private fetchApiData: FetchApiDataService) {}
+  constructor(private fetchApiData: FetchApiDataService, private router: Router) {}
 
   ngOnInit(): void {
-    this.checkUserLogin();
     this.getUserProfile();
-    this.getFavoriteMovies(); // Load favorites from localStorage or API
   }
 
-  checkUserLogin(): void {
-    if (!localStorage.getItem('token')) {
+  /**
+   * Fetch user profile and favorites
+   */
+  getUserProfile(): void {
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+    if (!currentUser || !currentUser.Username) {
       this.router.navigate(['login']);
+    } else {
+      this.user = currentUser;
+      this.getFavorites(); // Get the favorite movie IDs from localStorage
     }
   }
 
-  getUserProfile(): void {
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    this.user = currentUser;
+  /**
+   * Fetch user's favorite movies based on movieIds from localStorage
+   */
+  getFavorites(): void {
+    const storedFavorites = localStorage.getItem('userFavorites');
+    if (storedFavorites) {
+      const movieIds = JSON.parse(storedFavorites); // Array of movie IDs
+      this.favorites = []; // Clear existing favorite titles
+      this.favoritesLoading = true; // Start loading
+
+      // Fetch movie details for each movieId to display titles
+      movieIds.forEach((movieId: string) => {
+        this.fetchApiData.getMovieDetails(movieId).subscribe(
+          (movie) => {
+            this.favorites.push(movie); // Add movie object (not just title) to the list
+          },
+          (error) => {
+            console.error('Error fetching movie details:', error);
+          },
+          () => {
+            // Once all favorite movies are fetched, set loading to false
+            this.favoritesLoading = false;
+          }
+        );
+      });
+      console.log('Loaded user favorites from localStorage:', this.favorites);
+    } else {
+      console.log('No favorites found in localStorage');
+      this.favoritesLoading = false;
+    }
   }
 
+  /**
+   * Add a movie to favorites and update localStorage
+   */
+  addFavorite(movieId: string, movieTitle: string): void {
+    let storedFavorites = localStorage.getItem('userFavorites');
+    let favoritesArray = storedFavorites ? JSON.parse(storedFavorites) : [];
+
+    // Prevent duplicate favorites
+    if (!favoritesArray.includes(movieId)) {
+      favoritesArray.push(movieId);
+      localStorage.setItem('userFavorites', JSON.stringify(favoritesArray));
+      this.favorites.push({ _id: movieId, title: movieTitle }); // Add to the favorites list in UI
+      console.log('Movie added to favorites:', movieTitle);
+    } else {
+      console.log('Movie already in favorites:', movieTitle);
+    }
+  }
+
+  /**
+   * Remove a movie from favorites and update localStorage
+   */
+  removeFavorite(movieId: string, movieTitle: string): void {
+    let storedFavorites = localStorage.getItem('userFavorites');
+    if (storedFavorites) {
+      let favoritesArray = JSON.parse(storedFavorites);
+      const movieIndex = favoritesArray.indexOf(movieId);
+      if (movieIndex !== -1) {
+        favoritesArray.splice(movieIndex, 1); // Remove movieId from array
+        localStorage.setItem('userFavorites', JSON.stringify(favoritesArray));
+
+        // Also remove from UI favorites list
+        this.favorites = this.favorites.filter((movie) => movie._id !== movieId);
+
+        console.log('Movie removed from favorites:', movieTitle);
+      }
+    }
+  }
+
+  /**
+   * Toggle between view and edit mode
+   */
   toggleEdit(): void {
     this.isViewMode = !this.isViewMode;
   }
 
-  onSubmit(): void {
-    this.fetchApiData.editUser(this.user.username, this.user).subscribe((result: any) => {
-      console.log('User profile updated:', result);
-      this.isViewMode = true;
-    });
-  }
-
   /**
-   * Get favorite movies from localStorage or API if not found in localStorage
+   * Update user profile on submit
    */
-  getFavoriteMovies(): void {
-    const storedFavorites = localStorage.getItem('userFavorites');
-    if (storedFavorites) {
-      this.favorites = JSON.parse(storedFavorites);
-      console.log('Loaded favorites from localStorage:', this.favorites);
-    } else {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const username = currentUser?.username;
-  
-      if (username) {
-        this.fetchApiData.getUserFavoriteMovies(username).subscribe({
-          next: (movieIds: string[]) => {
-            if (movieIds.length > 0) {
-              // Prepare an array of movie requests
-              const movieRequests = movieIds.map(movieId => this.fetchApiData.getMovieByTitle(movieId));
-  
-              // Use forkJoin to wait for all movie details to be fetched
-              forkJoin(movieRequests).subscribe({
-                next: (movies: any[]) => {
-                  this.favorites = movies;  // All movies have been fetched
-                  console.log('Fetched all favorite movies:', this.favorites);
-                  // Store the fetched favorites in localStorage
-                  localStorage.setItem('userFavorites', JSON.stringify(this.favorites));
-                },
-                error: (error) => {
-                  console.error('Error fetching movie details:', error);
-                }
-              });
-            } else {
-              console.log('No favorite movies found');
-            }
-          },
-          error: (error) => {
-            console.error('Error fetching favorite movie IDs:', error);
-          }
-        });
-      }
-    }
-  }
-  
-
-  toggleFavorite(movieId: string): void {
-    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-    const username = currentUser?.Username;
-
-    if (this.isMovieFavorite(movieId)) {
-      // Remove from favorites
-      this.fetchApiData.removeFavoriteMovie(username, movieId).subscribe(
-        (response: any) => {
-          console.log('Removed from favorites:', response);
-          // Refresh the favorite movies list
-          this.getFavoriteMovies();
-        },
-        (error: any) => {
-          console.error('Error removing from favorites:', error);
-        }
-      );
-    } else {
-      // Add to favorites
-      this.fetchApiData.addFavoriteMovie(username, movieId).subscribe(
-        (response: any) => {
-          console.log('Added to favorites:', response);
-          // Refresh the favorite movies list
-          this.getFavoriteMovies();
-        },
-        (error: any) => {
-          console.error('Error adding to favorites:', error);
-        }
-      );
-    }
-  }
-
-  isMovieFavorite(movieId: string): boolean {
-    return this.favorites.some((movie) => movie._id === movieId);
+  onSubmit(): void {
+    this.fetchApiData.editUser(this.user.username, this.user).subscribe({
+      next: (result: any) => {
+        localStorage.setItem('user', JSON.stringify(result));
+        this.isViewMode = true;
+        alert('Profile updated successfully!');
+      },
+      error: (err) => {
+        console.error('Error updating profile:', err);
+        alert('Failed to update profile. Please try again.');
+      },
+    });
   }
 }
