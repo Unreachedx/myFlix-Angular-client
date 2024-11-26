@@ -1,15 +1,20 @@
-mat-card {
+.movie-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; /* Adds space between the cards */
+}
+
+.movie-card {
+  flex: 1 1 30%; /* Ensures each card takes up 30% of the container width */
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 10px;
-  height: auto;
-  background-color: #fff; // Optional: for a clean background on the cards
+  background-color: #fff; /* Optional: for a clean background on the cards */
 
   mat-card-header {
     text-align: center;
-    padding: 5px 0; // Add some space around header
+    padding: 5px 0; /* Add some space around header */
   }
 
   img {
@@ -52,4 +57,15 @@ mat-card {
   mat-icon:hover {
     transform: scale(1.2); /* Scale up icon slightly on hover */
   }
+}
+
+/* Ensure all cards, including the last, are the same width */
+.movie-list > .movie-card {
+  flex: 1 1 30%; /* Prevents any card from stretching more than 30% */
+  max-width: 30%; /* Enforces a max width of 30% */
+}
+
+/* Ensure the last card does not take more space in the row */
+.movie-list > .movie-card:last-child {
+  flex: 1 1 30%; /* Forces the last card to be 30% width */
 }

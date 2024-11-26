@@ -1,36 +1,31 @@
 import { Injectable, Inject, PLATFORM_ID } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
 import { isPlatformBrowser } from '@angular/common';
-import { Observable } from 'rxjs';
+import { AuthService } from './auth.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AuthGuard implements CanActivate {
-  
   constructor(
+    private authService: AuthService,
     private router: Router,
-    @Inject(PLATFORM_ID) private platformId: Object // Handle SSR
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
   canActivate(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
-  ): Observable<boolean> | Promise<boolean> | boolean {
+  ): boolean {
     if (isPlatformBrowser(this.platformId)) {
-      // Check authentication status in the browser
-      const token = localStorage.getItem('token');
-      
-      if (token) {
-        return true; // User is authenticated
+      if (this.authService.isLoggedIn()) {
+        return true; // Allow access if logged in
       }
-      
-      // Redirect unauthenticated users to the welcome page
-      this.router.navigate(['welcome']);
+
+      this.router.navigate(['welcome']); // Redirect to 'welcome' page if not logged in
       return false;
     }
-    
-    // Block access during server-side rendering
-    return false;
+
+    return false; // Block access during server-side rendering
   }
 }
